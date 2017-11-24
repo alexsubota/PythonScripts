@@ -13,7 +13,10 @@ class Client():
             raise ClientError("PUT method got error")
 
     def get(self):
-        print ('get')
+        try:
+            print ('get')
+        finally:
+            raise ClientError("GET method got error")
 
 
 class ClientError(Exception):
