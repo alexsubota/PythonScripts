@@ -7,6 +7,9 @@ class Client():
     def put(self, name, val, timestamp = str(int(time.time()))):
         myStr = 'put ' + str(name) + ' ' + str(val) + ' ' + str(timestamp) + '\n'
         self.client.send(myStr.encode())
+        data = self.client.recv(1024).decode()
+        if data.split()[0] == 'error':
+            raise ClientError('MYERROR')
 
     def get(self, *args):
         #try:
