@@ -37,7 +37,6 @@ class Client:
                 data += self.connection.recv(1024)
             except socket.error as err:
                 raise ClientSocketError("error recv data", err)
-
         # не забываем преобразовывать байты в объекты str для дальнейшей работы
         decoded_data = data.decode()
 

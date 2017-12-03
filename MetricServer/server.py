@@ -9,52 +9,72 @@ class ClientServerProtocol(asyncio.Protocol):
 
     def data_received(self, data):
         resp = self.process_data(data.decode())
-        if resp:
-            self.transport.write(resp.encode())
-        self.transport.close()
+        strOut = ''
+        if resp != 0:
+            for key, item in resp.items():
+                for t, value in item:
+                    strOut += str(key) + ' ' + str(value) + ' ' + str(t) +'\n'
+            strOut = strOut + '\n'
+            self.transport.write(strOut.encode())
 
     def process_data(self, data):
+        print (data)
         dataSplitted = data.split()
-        commandType = dataSplitted[0].upper
+        commandType = dataSplitted[0].upper()
         metricName = dataSplitted[1]
         if commandType == 'PUT':
             try:
-                if metricName in self.myDict:
-                    tempList = self.myDict.get(metricName)
-                    tempList.append((dataSplitted[2], dataSplitted[3]))
+                if metricName in ClientServerProtocol.myDict.keys():
+                    tempList = ClientServerProtocol.myDict.get(metricName)
+                    if (dataSplitted[3], dataSplitted[2]) not in tempList:
+                        tempList.append((dataSplitted[3], dataSplitted[2]))
                 else:
-                    tempList = [(dataSplitted[2], dataSplitted[3])]
+                    tempList = [(dataSplitted[3], dataSplitted[2])]
                 tempDict = {metricName: tempList}
-                self.myDict = {**self.myDict, **tempDict}
-                self.transport.write('ok')
+                ClientServerProtocol.myDict = {**ClientServerProtocol.myDict, **tempDict}
+                self.transport.write('ok\n\n'.encode())
+                return 0
             except:
-                self.transport.write('error')
+                self.transport.write('error\n\n'.encode())
+                return 0
         elif commandType == 'GET':
             try:
-                self.transport.write('ok')
                 if metricName == '*':
-                    return self.myDict
+                    self.transport.write('ok\n'.encode())
+                    return ClientServerProtocol.myDict
                 else:
-                    return self.myDict.get(metricName)
+                    if ClientServerProtocol.myDict.get(metricName):
+                        self.transport.write('ok\n'.encode())
+                        return {metricName: (ClientServerProtocol.myDict.get(metricName))}
+                    else:
+                        self.transport.write('ok\n\n'.encode())
+                        return 0
             except:
-                self.transport.write('error')
+                self.transport.write('error\n\n'.encode())
+                return 0
         else:
-            self.transport.write('error')
-            self.transport.write('wrong command')
+            self.transport.write('error\n'.encode())
+            self.transport.write('wrong command\n\n'.encode())
+            return 0
 
-loop = asyncio.get_event_loop()
-coro = loop.create_server(
-    ClientServerProtocol,
-    '127.0.0.1', 8888
-)
 
-server = loop.run_until_complete(coro)
+def run_server(host, port):
+    loop = asyncio.get_event_loop()
+    print('Start server')
+    coro = loop.create_server(
+        ClientServerProtocol,
+        host, port
+    )
 
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    pass
+    server = loop.run_until_complete(coro)
 
-server.close()
-loop.run_until_complete(server.wait_closed())
-loop.close()
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        server.close()
+        loop.run_until_complete(server.wait_closed())
+        loop.close()
+
+    server.close()
+    loop.run_until_complete(server.wait_closed())
+    loop.close()
